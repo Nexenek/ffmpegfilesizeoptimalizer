@@ -31,9 +31,10 @@ The script requires `ffmpeg` and takes five required arguments:
 - `target_size_mb` - Target file size in Megabytes (accepts floating-point numbers)
 - `tolerance` - Maximum allowed difference between the output file size and the target file size (accepts floating-point numbers)
 - `codec` - Define your own codec to optimize `ffmpeg` for your machine
+- `hwaccel` - Hardware acceleration to use. Defaults to `auto`
 
 ```bash
-./ffmpegfilesizeoptimalizer input_file output_file target_size_mb tolerance codec
+./ffmpegfilesizeoptimalizer input_file output_file target_size_mb tolerance codec hwaccel
 ```
 
 ---

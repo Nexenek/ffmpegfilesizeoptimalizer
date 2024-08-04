@@ -5,11 +5,22 @@ use std::str;
 
 #[derive(StructOpt)]
 struct Cli {
+    #[structopt(help = "Path to the input file")]
     input_file: String,
+    #[structopt(help = "Path to the output file")]
     output_file: String,
+    #[structopt(help = "Target file size in Megabytes (accepts floating-point numbers)", parse(try_from_str = parse_f64))]
     target_size_mb: f64,
+    #[structopt(help = "Maximum allowed difference between the output file size and the target file size (accepts floating-point numbers)", parse(try_from_str = parse_f64))]
     tolerance: f64,
+    #[structopt(help = "Define your own codec to optimize `ffmpeg` for your machine a . Defaults to `libx264`", default_value = "libx264")]
     codec: String,
+    #[structopt(help = "Hardware acceleration to use. Defaults to `auto`", default_value = "auto")]
+    hwaccel: String,
+}
+
+fn parse_f64(src: &str) -> Result<f64, std::num::ParseFloatError> {
+    src.parse::<f64>()
 }
 
 fn get_video_duration(input_file: &str) -> f64 {
@@ -35,7 +46,7 @@ fn get_file_size(file_path: &str) -> f64 {
     metadata.len() as f64 / (1024.0 * 1024.0)
 }
 
-fn compress_video(input_file: &str, output_file: &str, target_size_mb: f64, tolerance: f64, codec: &str) {
+fn compress_video(input_file: &str, output_file: &str, target_size_mb: f64, tolerance: f64, codec: &str, hwaccel: &str) {
     let duration = get_video_duration(input_file);
     let max_iterations = 10;
     let tolerance =  tolerance;
@@ -46,7 +57,7 @@ fn compress_video(input_file: &str, output_file: &str, target_size_mb: f64, tole
 
         let pass1_output = Command::new("ffmpeg")
             .args(&[
-                "-y", "-i", input_file, "-b:v", &format!("{}k", bitrate_kbps),
+                "-y", "-hwaccel", hwaccel, "-i", input_file, "-b:v", &format!("{}k", bitrate_kbps),
                 "-c:v", codec, "-pass", "1", "-f", "mp4", "NUL"
             ])
             .output()
@@ -62,7 +73,7 @@ fn compress_video(input_file: &str, output_file: &str, target_size_mb: f64, tole
 
         let pass2_output = Command::new("ffmpeg")
             .args(&[
-                "-y", "-i", input_file, "-b:v", &format!("{}k", bitrate_kbps),
+                "-y", "-hwaccel", hwaccel, "-i", input_file, "-b:v", &format!("{}k", bitrate_kbps),
                 "-c:v", codec, "-pass", "2", output_file
             ])
             .output()
@@ -94,6 +105,6 @@ fn main() {
         return;
     }
 
-    compress_video(&args.input_file, &args.output_file, args.target_size_mb, args.tolerance, &args.codec);
+    compress_video(&args.input_file, &args.output_file, args.target_size_mb, args.tolerance, &args.codec, &args.hwaccel);
     println!("Compressed video saved as {}", args.output_file);
 }
