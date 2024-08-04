@@ -13,7 +13,7 @@ struct Cli {
     target_size_mb: f64,
     #[structopt(help = "Maximum allowed difference between the output file size and the target file size (accepts floating-point numbers)", parse(try_from_str = parse_f64))]
     tolerance: f64,
-    #[structopt(help = "Define your own codec to optimize `ffmpeg` for your machine a . Defaults to `libx264`", default_value = "libx264")]
+    #[structopt(help = "Define your own codec to optimize `ffmpeg` for your machine. Defaults to `libx264`", default_value = "libx264")]
     codec: String,
     #[structopt(help = "Hardware acceleration to use. Defaults to `auto`", default_value = "auto")]
     hwaccel: String,
@@ -57,7 +57,7 @@ fn compress_video(input_file: &str, output_file: &str, target_size_mb: f64, tole
 
         let pass1_output = Command::new("ffmpeg")
             .args(&[
-                "-y", "-hwaccel", hwaccel, "-i", input_file, "-b:v", &format!("{}k", bitrate_kbps),
+                "-y", "-hwaccel", hwaccel, "-c:v", codec, "-i", input_file, "-b:v", &format!("{}k", bitrate_kbps),
                 "-c:v", codec, "-pass", "1", "-f", "mp4", "NUL"
             ])
             .output()
@@ -73,7 +73,7 @@ fn compress_video(input_file: &str, output_file: &str, target_size_mb: f64, tole
 
         let pass2_output = Command::new("ffmpeg")
             .args(&[
-                "-y", "-hwaccel", hwaccel, "-i", input_file, "-b:v", &format!("{}k", bitrate_kbps),
+                "-y", "-hwaccel", hwaccel, "-c:v", codec, "-i", input_file, "-b:v", &format!("{}k", bitrate_kbps),
                 "-c:v", codec, "-pass", "2", output_file
             ])
             .output()
