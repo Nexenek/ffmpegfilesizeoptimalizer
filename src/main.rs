@@ -47,17 +47,21 @@ fn get_file_size(file_path: &str) -> f64 {
 }
 
 fn compress_video(input_file: &str, output_file: &str, target_size_mb: f64, tolerance: f64, codec: &str, hwaccel: &str) {
+    println!("Begginging analysis...");
     let duration = get_video_duration(input_file);
+    println!("Duration: {}", duration);
+    let mut bitrate = calculate_bitrate(target_size_mb, duration);
+    println!("Calculated Bitrate: {}", bitrate);
     let max_iterations = 10;
-    let tolerance =  tolerance;
 
+    println!("Beggining compression...");
     for iteration in 0..max_iterations {
-        let bitrate = calculate_bitrate(target_size_mb, duration);
         let bitrate_kbps = (bitrate / 1000.0) as i32;
+        println!("Calculated Bitrate (kbps): {}", bitrate_kbps);
 
         let pass1_output = Command::new("ffmpeg")
             .args(&[
-                "-y", "-hwaccel", hwaccel, "-c:v", codec, "-i", input_file, "-b:v", &format!("{}k", bitrate_kbps),
+                "-y", "-hwaccel", hwaccel, "-i", input_file, "-b:v", &format!("{}k", bitrate_kbps),
                 "-c:v", codec, "-pass", "1", "-f", "mp4", "NUL"
             ])
             .output()
@@ -73,7 +77,7 @@ fn compress_video(input_file: &str, output_file: &str, target_size_mb: f64, tole
 
         let pass2_output = Command::new("ffmpeg")
             .args(&[
-                "-y", "-hwaccel", hwaccel, "-c:v", codec, "-i", input_file, "-b:v", &format!("{}k", bitrate_kbps),
+                "-y", "-hwaccel", hwaccel, "-i", input_file, "-b:v", &format!("{}k", bitrate_kbps),
                 "-c:v", codec, "-pass", "2", output_file
             ])
             .output()
@@ -94,11 +98,35 @@ fn compress_video(input_file: &str, output_file: &str, target_size_mb: f64, tole
         if (current_size - target_size_mb).abs() <= tolerance {
             break;
         }
+
+        if current_size > target_size_mb {
+            if current_size - target_size_mb >= 5.5 { 
+                bitrate *= 0.8;
+                println!("Reducing bitrate by 20%");
+            } else {
+                bitrate *= 0.9;
+                println!("Reducing bitrate by 10%");
+            }
+        } else {
+            if target_size_mb - current_size >= 5.5 {
+                bitrate *= 1.2;
+                println!("Increasing bitrate by 20%");
+            } else {
+                bitrate *= 1.1;
+                println!("Increasing bitrate by 10%");
+            }
+        }
     }
 }
 
 fn main() {
     let args = Cli::from_args();
+    println!("Input file: {}", args.input_file);
+    println!("Output file: {}", args.output_file);
+    println!("Target size: {:.2} MB", args.target_size_mb);
+    println!("Tolerance: {:.2} MB", args.tolerance);
+    println!("Codec: {}", args.codec);
+    println!("Hardware acceleration: {}", args.hwaccel);
 
     if !fs::metadata(&args.input_file).is_ok() {
         eprintln!("Input file does not exist or is not accessible");
