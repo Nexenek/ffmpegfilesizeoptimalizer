@@ -100,17 +100,23 @@ fn compress_video(input_file: &str, output_file: &str, target_size_mb: f64, tole
         }
 
         if current_size > target_size_mb {
-            if current_size - target_size_mb >= 5.5 { 
-                bitrate *= 0.8;
+            if current_size - target_size_mb >= 30.0 {
+                bitrate *= 0.80;
                 println!("Reducing bitrate by 20%");
+            } else if current_size - target_size_mb >= 8.5 { 
+                bitrate *= 0.85;
+                println!("Reducing bitrate by 15%");
             } else {
                 bitrate *= 0.9;
                 println!("Reducing bitrate by 10%");
             }
         } else {
-            if target_size_mb - current_size >= 5.5 {
-                bitrate *= 1.2;
+            if target_size_mb - current_size >= 30.0 {
+                bitrate *= 1.20;
                 println!("Increasing bitrate by 20%");
+            } else if target_size_mb - current_size >= 8.5 {
+                bitrate *= 1.15;
+                println!("Increasing bitrate by 15%");
             } else {
                 bitrate *= 1.1;
                 println!("Increasing bitrate by 10%");
